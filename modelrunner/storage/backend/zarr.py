@@ -14,7 +14,18 @@ from typing import Any, Collection, Sequence, Union
 import numpy as np
 import zarr
 from numpy.typing import ArrayLike, DTypeLike
-from zarr._storage.store import Store
+
+try:
+    # try import path from zarr version 3
+    from zarr.abc.store import Store
+
+    is_zarr2 = False
+
+except ImportError:
+    # try import path from zarr version 2
+    from zarr._storage.store import Store
+
+    is_zarr2 = True
 
 from ..access_modes import ModeType
 from ..attributes import AttrsLike
@@ -55,7 +66,10 @@ class ZarrStorage(StorageBase):
                 if self.mode.file_mode == "r":
                     self._logger.info("DirectoryStore is always opened writable")
 
-                self._store = zarr.DirectoryStore(path)
+                if is_zarr2:
+                    self._store = zarr.DirectoryStore(path)
+                else:
+                    self._store = zarr.LocalStore(path)
 
             elif path.suffix == ".zip":
                 # create a ZipStore
@@ -65,7 +79,7 @@ class ZarrStorage(StorageBase):
                     path.unlink()
                 self._store = zarr.storage.ZipStore(path, mode=file_mode)
 
-            elif path.suffix == ".sqldb":
+            elif is_zarr2 and path.suffix == ".sqldb":
                 # create a SQLiteStore
                 if self.mode.file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)
@@ -135,7 +149,7 @@ class ZarrStorage(StorageBase):
             return self._root.keys()  # type: ignore
 
     def is_group(self, loc: Sequence[str], *, ignore_cls: bool = False) -> bool:
-        return isinstance(self[loc], zarr.hierarchy.Group)
+        return isinstance(self[loc], zarr.Group)
 
     def _create_group(self, loc: Sequence[str]) -> None:
         parent, name = self._get_parent(loc)

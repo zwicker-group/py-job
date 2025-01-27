@@ -42,7 +42,7 @@ def storage_extensions(
         dot (bool):
             Indicates whether the returned extensions are prepended with a dot (`.`)
         exclude (list, optional):
-            Extensions (without dots) that should be explicitely excluded
+            Extensions (without dots) that should be explicitly excluded
 
     Returns:
         sequence: sorted list of extensions
@@ -53,10 +53,12 @@ def storage_extensions(
     if module_available("h5py"):
         exts.append("hdf")
     if module_available("zarr"):
+        from modelrunner.storage.backend.zarr import is_zarr2
+
         exts.append("zip")
         if incl_folder:
             exts.extend(["", "zarr"])
-        if module_available("sqlite3"):
+        if is_zarr2 and module_available("sqlite3"):
             exts.append("sqldb")
 
     if dot:
